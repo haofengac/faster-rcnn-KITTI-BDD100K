@@ -18,7 +18,7 @@ from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
 
-def main(args, weight):
+def pred_with_weight(args):
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     distributed = num_gpus > 1
 
@@ -42,34 +42,36 @@ def main(args, weight):
 
     model = build_detection_model(cfg)
     model.to(cfg.MODEL.DEVICE)
+    
+    for weight in args.weights:
+        checkpointer = DetectronCheckpointer(cfg, model)
+        _ = checkpointer.load(weight)
 
-    checkpointer = DetectronCheckpointer(cfg, model)
-    _ = checkpointer.load(weight)
+        iou_types = ("bbox",)
+        if cfg.MODEL.MASK_ON:
+            iou_types = iou_types + ("segm",)
+        output_folders = [None] * len(cfg.DATASETS.TEST)
 
-    iou_types = ("bbox",)
-    if cfg.MODEL.MASK_ON:
-        iou_types = iou_types + ("segm",)
-    output_folders = [None] * len(cfg.DATASETS.TEST)
-
-    if cfg.OUTPUT_DIR:
-        dataset_names = cfg.DATASETS.TEST
-        for idx, dataset_name in enumerate(dataset_names):
-            output_folder = os.path.join(cfg.OUTPUT_DIR, "inference", dataset_name)
-            mkdir(output_folder)
-            output_folders[idx] = output_folder
-    data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)
-    for output_folder, data_loader_val in zip(output_folders, data_loaders_val):
-        inference(
-            model,
-            data_loader_val,
-            iou_types=iou_types,
-            box_only=cfg.MODEL.RPN_ONLY,
-            device=cfg.MODEL.DEVICE,
-            expected_results=cfg.TEST.EXPECTED_RESULTS,
-            expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
-            output_folder=output_folder,
-        )
-        synchronize()
+        if cfg.OUTPUT_DIR:
+            dataset_names = cfg.DATASETS.TEST
+            for idx, dataset_name in enumerate(dataset_names):
+                output_folder = cfg.OUTPUT_DIR
+                mkdir(output_folder)
+                output_folders[idx] = output_folder
+        data_loaders_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)
+        for output_folder, data_loader_val in zip(output_folders, data_loaders_val):
+            inference(
+                model,
+                data_loader_val,
+                iou_types=iou_types,
+                box_only=cfg.MODEL.RPN_ONLY,
+                device=cfg.MODEL.DEVICE,
+                expected_results=cfg.TEST.EXPECTED_RESULTS,
+                expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
+                output_folder=output_folder,
+                name=weight.split('_')[-1].split('.')[0]
+            )
+            synchronize()
 
 
 if __name__ == "__main__":
@@ -88,8 +90,7 @@ if __name__ == "__main__":
         default=None,
         nargs=argparse.REMAINDER,
     )
-    parser.add_argument("--weights", type=list)
-
+    parser.add_argument("--weights", type=str, nargs='+')
+    
     args = parser.parse_args()
-    for weight in args.weights:
-        main(args, weight)
+    pred_with_weight(args)
