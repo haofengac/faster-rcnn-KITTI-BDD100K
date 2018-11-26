@@ -30,6 +30,7 @@ dist/
 /datasets
 /models
 out
+out_*
 
 # log
 log.txt
