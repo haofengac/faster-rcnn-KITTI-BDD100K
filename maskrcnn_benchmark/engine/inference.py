@@ -385,47 +385,49 @@ def inference(
 
     if output_folder:
         torch.save(predictions, os.path.join(output_folder, "predictions.pth"))
+    
+    return
+    
+#     if box_only:
+#         logger.info("Evaluating bbox proposals")
+#         areas = {"all": "", "small": "s", "medium": "m", "large": "l"}
+#         res = COCOResults("box_proposal")
+#         for limit in [100, 1000]:
+#             for area, suffix in areas.items():
+#                 stats = evaluate_box_proposals(
+#                     predictions, dataset, area=area, limit=limit
+#                 )
+#                 key = "AR{}@{:d}".format(suffix., limit)
+#                 res.results["box_proposal"][key] = stats["ar"].item()
+#         logger.info(res)
+#         check_expected_results(res, expected_results, expected_results_sigma_tol)
+#         if output_folder:
+#             torch.save(res, os.path.join(output_folder, "box_proposals.pth"))
+#         return
+#     logger.info("Preparing results for COCO format")
+#     coco_results = {}
+#     if "bbox" in iou_types:
+#         logger.info("Preparing bbox results")
+#         coco_results["bbox"] = prepare_for_coco_detection(predictions, dataset)
+#     if "segm" in iou_types:
+#         logger.info("Preparing segm results")
+#         coco_results["segm"] = prepare_for_coco_segmentation(predictions, dataset)
 
-    if box_only:
-        logger.info("Evaluating bbox proposals")
-        areas = {"all": "", "small": "s", "medium": "m", "large": "l"}
-        res = COCOResults("box_proposal")
-        for limit in [100, 1000]:
-            for area, suffix in areas.items():
-                stats = evaluate_box_proposals(
-                    predictions, dataset, area=area, limit=limit
-                )
-                key = "AR{}@{:d}".format(suffix, limit)
-                res.results["box_proposal"][key] = stats["ar"].item()
-        logger.info(res)
-        check_expected_results(res, expected_results, expected_results_sigma_tol)
-        if output_folder:
-            torch.save(res, os.path.join(output_folder, "box_proposals.pth"))
-        return
-    logger.info("Preparing results for COCO format")
-    coco_results = {}
-    if "bbox" in iou_types:
-        logger.info("Preparing bbox results")
-        coco_results["bbox"] = prepare_for_coco_detection(predictions, dataset)
-    if "segm" in iou_types:
-        logger.info("Preparing segm results")
-        coco_results["segm"] = prepare_for_coco_segmentation(predictions, dataset)
-
-    results = COCOResults(*iou_types)
-    logger.info("Evaluating predictions")
-    for iou_type in iou_types:
-        with tempfile.NamedTemporaryFile() as f:
-            file_path = f.name
-            if output_folder:
-                file_path = os.path.join(output_folder, iou_type + ".json")
-            res = evaluate_predictions_on_coco(
-                dataset.coco, coco_results[iou_type], file_path, iou_type
-            )
-            results.update(res)
-    logger.info(results)
-    check_expected_results(results, expected_results, expected_results_sigma_tol)
-    if output_folder:
-        torch.save(results, os.path.join(output_folder, "coco_results.pth"))
+#     results = COCOResults(*iou_types)
+#     logger.info("Evaluating predictions")
+#     for iou_type in iou_types:
+#         with tempfile.NamedTemporaryFile() as f:
+#             file_path = f.name
+#             if output_folder:
+#                 file_path = os.path.join(output_folder, iou_type + ".json")
+#             res = evaluate_predictions_on_coco(
+#                 dataset.coco, coco_results[iou_type], file_path, iou_type
+#             )
+#             results.update(res)
+#     logger.info(results)
+#     check_expected_results(results, expected_results, expected_results_sigma_tol)
+#     if output_folder:
+#         torch.save(results, os.path.join(output_folder, "coco_results.pth"))
         
-    return results, coco_results, predictions
+#     return results, coco_results, predictions
 

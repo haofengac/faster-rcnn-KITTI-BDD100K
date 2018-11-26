@@ -55,7 +55,6 @@ class KittiDataset(Dataset):
         
 
     def __getitem__(self, idx):
-        
         # load image
         img = ToTensor()(Image.open(os.path.join(self.image_dir, self.image_paths[idx])))
         # padding

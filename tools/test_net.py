@@ -18,24 +18,7 @@ from maskrcnn_benchmark.utils.logger import setup_logger
 from maskrcnn_benchmark.utils.miscellaneous import mkdir
 
 
-def main():
-    parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
-    parser.add_argument(
-        "--config-file",
-        default="/private/home/fmassa/github/detectron.pytorch_v2/configs/e2e_faster_rcnn_R_50_C4_1x_caffe2.yaml",
-        metavar="FILE",
-        help="path to config file",
-    )
-    parser.add_argument("--local_rank", type=int, default=0)
-    parser.add_argument(
-        "opts",
-        help="Modify config options using the command-line",
-        default=None,
-        nargs=argparse.REMAINDER,
-    )
-
-    args = parser.parse_args()
-
+def main(args, weight):
     num_gpus = int(os.environ["WORLD_SIZE"]) if "WORLD_SIZE" in os.environ else 1
     distributed = num_gpus > 1
 
@@ -61,12 +44,13 @@ def main():
     model.to(cfg.MODEL.DEVICE)
 
     checkpointer = DetectronCheckpointer(cfg, model)
-    _ = checkpointer.load(cfg.MODEL.WEIGHT)
+    _ = checkpointer.load(weight)
 
     iou_types = ("bbox",)
     if cfg.MODEL.MASK_ON:
         iou_types = iou_types + ("segm",)
     output_folders = [None] * len(cfg.DATASETS.TEST)
+
     if cfg.OUTPUT_DIR:
         dataset_names = cfg.DATASETS.TEST
         for idx, dataset_name in enumerate(dataset_names):
@@ -89,4 +73,23 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    
+    parser = argparse.ArgumentParser(description="PyTorch Object Detection Inference")
+    parser.add_argument(
+        "--config-file",
+        default="/private/home/fmassa/github/detectron.pytorch_v2/configs/e2e_faster_rcnn_R_50_C4_1x_caffe2.yaml",
+        metavar="FILE",
+        help="path to config file",
+    )
+    parser.add_argument("--local_rank", type=int, default=0)
+    parser.add_argument(
+        "opts",
+        help="Modify config options using the command-line",
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
+    parser.add_argument("--weights", type=list)
+
+    args = parser.parse_args()
+    for weight in args.weights:
+        main(args, weight)
