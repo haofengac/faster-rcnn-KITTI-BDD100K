@@ -44,6 +44,11 @@ def pred_with_weight(args):
     model.to(cfg.MODEL.DEVICE)
     
     for weight in args.weights:
+        # skipping evaluations already performed
+        out_json = "{}/detections/{}.json".format(cfg.OUTPUT_DIR, weight.split('/')[-1].split('_')[-1].split('.')[0])
+        if os.path.exists(out_json):
+            print('skipping', out_json)
+            continue
         checkpointer = DetectronCheckpointer(cfg, model)
         _ = checkpointer.load(weight)
 

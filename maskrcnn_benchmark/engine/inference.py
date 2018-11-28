@@ -62,6 +62,7 @@ def save_as_bdd_format(preds, path, name):
         }
         boxes = pred.bbox.numpy().tolist()
         labels = pred.get_field('labels').numpy().tolist()
+        scores = pred.get_field('scores').numpy().tolist()
         for i in range(len(boxes)):
             pred_bdd['labels'] += [{
                 'category': labels[i],
@@ -70,7 +71,8 @@ def save_as_bdd_format(preds, path, name):
                     'y1': boxes[i][1],
                     'x2': boxes[i][2],
                     'y2': boxes[i][3]
-                }
+                },
+                'score': scores[i]
             }]
         preds_bdd += [pred_bdd]
     path = os.path.join(path, '{}.json'.format(name))

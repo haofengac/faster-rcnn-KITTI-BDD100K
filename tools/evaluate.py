@@ -11,13 +11,19 @@ import os.path as osp
 import numpy as np
 from PIL import Image
 
+from maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.data import make_data_loader
 
 def parse_args():
     """Use argparse to get command line arguments."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('task', choices=['seg', 'det', 'drivable'])
-    parser.add_argument('gt', help='path to ground truth')
-    parser.add_argument('result', help='path to results to be evaluated')
+    parser.add_argument('--result', type=str, help='path to results to be evaluated')
+    parser.add_argument(
+        "opts",
+        help="Modify config options using the command-line",
+        default=None,
+        nargs=argparse.REMAINDER,
+    )
     args = parser.parse_args()
 
     return args
@@ -43,41 +49,6 @@ def find_all_png(folder):
     return paths
 
 
-def evaluate_segmentation(gt_dir, result_dir, num_classes, key_length):
-    gt_dict = dict([(osp.split(p)[1][:key_length], p)
-                    for p in find_all_png(gt_dir)])
-    result_dict = dict([(osp.split(p)[1][:key_length], p)
-                        for p in find_all_png(result_dir)])
-    result_gt_keys = set(gt_dict.keys()) & set(result_dict.keys())
-    if len(result_gt_keys) != len(gt_dict):
-        raise ValueError('Result folder only has {} of {} ground truth files.'
-                         .format(len(result_gt_keys), len(gt_dict)))
-    print('Found', len(result_dict), 'results')
-    print('Evaluating', len(gt_dict), 'results')
-    hist = np.zeros((num_classes, num_classes))
-    i = 0
-    gt_id_set = set()
-    for key in sorted(gt_dict.keys()):
-        gt_path = gt_dict[key]
-        result_path = result_dict[key]
-        gt = np.asarray(Image.open(gt_path, 'r'))
-        gt_id_set.update(np.unique(gt).tolist())
-        prediction = np.asanyarray(Image.open(result_path, 'r'))
-        hist += fast_hist(gt.flatten(), prediction.flatten(), num_classes)
-        i += 1
-        if i % 100 == 0:
-            print('Finished', i, per_class_iu(hist) * 100)
-    gt_id_set.remove(255)
-    print('GT id set', gt_id_set)
-    ious = per_class_iu(hist) * 100
-    miou = np.mean(ious[list(gt_id_set)])
-    return miou, list(ious)
-
-
-def evaluate_drivable(gt_dir, result_dir):
-    return evaluate_segmentation(gt_dir, result_dir, 3, 17)
-
-
 def get_ap(recalls, precisions):
     # correct AP calculation
     # first append sentinel values at the end
@@ -99,6 +70,7 @@ def get_ap(recalls, precisions):
 
 def group_by_key(detections, key):
     groups = defaultdict(list)
+    
     for d in detections:
         groups[d[key]].append(d)
     return groups
@@ -108,43 +80,34 @@ def cat_pc(gt, predictions, thresholds):
     """
     Implementation refers to https://github.com/rbgirshick/py-faster-rcnn
     """
-    num_gts = len(gt)
-    image_gts = group_by_key(gt, 'name')
-    image_gt_boxes = {k: np.array([[float(z) for z in b['bbox']]
-                                   for b in boxes])
-                      for k, boxes in image_gts.items()}
-    image_gt_checked = {k: np.zeros((len(boxes), len(thresholds)))
-                        for k, boxes in image_gts.items()}
     predictions = sorted(predictions, key=lambda x: x['score'], reverse=True)
+    gt_boxes = [[g['box2d']['x1'], g['box2d']['y1'], g['box2d']['x2'], g['box2d']['y2']] for g in gt]
+    gt_boxes = np.array(gt_boxes)
+    gt_checked = np.zeros((len(gt_boxes), len(thresholds)))
 
     # go down dets and mark TPs and FPs
     nd = len(predictions)
     tp = np.zeros((nd, len(thresholds)))
     fp = np.zeros((nd, len(thresholds)))
     for i, p in enumerate(predictions):
-        box = p['bbox']
+        box = p['box2d']
+        x1, x2, y1, y2 = box['x1'], box['x2'], box['y1'], box['y2']
         ovmax = -np.inf
         jmax = -1
-        try:
-            gt_boxes = image_gt_boxes[p['name']]
-            gt_checked = image_gt_checked[p['name']]
-        except KeyError:
-            gt_boxes = []
-            gt_checked = None
-
+        
         if len(gt_boxes) > 0:
             # compute overlaps
             # intersection
-            ixmin = np.maximum(gt_boxes[:, 0], box[0])
-            iymin = np.maximum(gt_boxes[:, 1], box[1])
-            ixmax = np.minimum(gt_boxes[:, 2], box[2])
-            iymax = np.minimum(gt_boxes[:, 3], box[3])
+            ixmin = np.maximum(gt_boxes[:, 0], x1)
+            iymin = np.maximum(gt_boxes[:, 1], y1)
+            ixmax = np.minimum(gt_boxes[:, 2], x2)
+            iymax = np.minimum(gt_boxes[:, 3], y2)
             iw = np.maximum(ixmax - ixmin + 1., 0.)
             ih = np.maximum(iymax - iymin + 1., 0.)
             inters = iw * ih
 
             # union
-            uni = ((box[2] - box[0] + 1.) * (box[3] - box[1] + 1.) +
+            uni = ((x2 - x1 + 1.) * (y2 - y1 + 1.) +
                    (gt_boxes[:, 2] - gt_boxes[:, 0] + 1.) *
                    (gt_boxes[:, 3] - gt_boxes[:, 1] + 1.) - inters)
 
@@ -165,7 +128,7 @@ def cat_pc(gt, predictions, thresholds):
     # compute precision recall
     fp = np.cumsum(fp, axis=0)
     tp = np.cumsum(tp, axis=0)
-    recalls = tp / float(num_gts)
+    recalls = tp / float(len(gt))
     # avoid divide by zero in case the first detection matches a difficult
     # ground truth
     precisions = tp / np.maximum(tp + fp, np.finfo(np.float64).eps)
@@ -176,18 +139,22 @@ def cat_pc(gt, predictions, thresholds):
     return recalls, precisions, ap
 
 
-def evaluate_detection(gt_path, result_path):
-    gt = json.load(open(gt_path, 'r'))
-    pred = json.load(open(result_path, 'r'))
-    cat_gt = group_by_key(gt, 'category')
-    cat_pred = group_by_key(pred, 'category')
-    cat_list = sorted(cat_gt.keys())
+def evaluate_detection(gt, pred, class_id_dict):
+
     thresholds = [0.75]
-    aps = np.zeros((len(thresholds), len(cat_list)))
-    for i, cat in enumerate(cat_list):
-        if cat in cat_pred:
-            r, p, ap = cat_pc(cat_gt[cat], cat_pred[cat], thresholds)
-            aps[:, i] = ap
+    aps = np.zeros((len(thresholds), len(class_id_dict.keys())))
+    cat_list = [class_id_dict[k] for k in class_id_dict]
+    
+    for idx in range(len(gt)):
+        cat_gt = group_by_key(gt[idx]['labels'], 'category')
+        cat_pred = group_by_key(pred[idx]['labels'], 'category')
+        
+        for i, cat in enumerate(cat_list):
+            if cat in cat_pred:
+                r, p, ap = cat_pc(cat_gt[cat], cat_pred[cat], thresholds)
+                aps[:, i] += ap
+                
+    aps /= len(gt)
     aps *= 100
     mAP = np.mean(aps)
     return mAP, aps.flatten().tolist()
@@ -195,16 +162,23 @@ def evaluate_detection(gt_path, result_path):
 
 def main():
     args = parse_args()
+    
+    cfg.merge_from_list(args.opts)
 
-    if args.task == 'drivable':
-        mean, breakdown = evaluate_drivable(args.gt, args.result)
-    elif args.task == 'seg':
-        mean, breakdown = evaluate_segmentation(args.gt, args.result, 19, 17)
-    elif args.task == 'det':
-        mean, breakdown = evaluate_detection(args.gt, args.result)
+    for r in sorted(os.listdir(args.result)):
+        if not r.endswith('.json'):
+            continue
+        print('evaluating {}...'.format(r))
+        with open(os.path.join(args.result, r)) as f:
+            result = json.load(f)
 
-    print('{:.2f}'.format(mean),
-          ', '.join(['{:.2f}'.format(n) for n in breakdown]))
+        data_loader = make_data_loader(cfg, is_train=False, is_distributed=False)[0]
+        gt = data_loader.dataset.get_gt_labels()
+        class_id_dict = data_loader.dataset.get_classes_ids()
+        mean, breakdown = evaluate_detection(gt, result, class_id_dict)
+
+        print('{:.2f}'.format(mean),
+              ', '.join(['{:.2f}'.format(n) for n in breakdown]))
 
 
 if __name__ == '__main__':
