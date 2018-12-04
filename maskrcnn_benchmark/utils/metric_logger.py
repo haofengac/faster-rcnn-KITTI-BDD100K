@@ -107,7 +107,7 @@ class TensorboardLogger(MetricLogger):
             for cat in cats.unique():
                 for i in range(len(cats)):
                     if cats[i] == cat:
-                        x1, x2, y1, y2 = boxes[i]
+                        x1, y1, x2, y2 = boxes[i]
                         fig, ax = plt.figure(), plt.gca()
                         
                         ax.imshow(image.transpose(1, 2, 0))
