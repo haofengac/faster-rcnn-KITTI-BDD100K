@@ -29,6 +29,7 @@ dist/
 # project dirs
 /datasets
 /models
+logs
 out
 out_*
 
