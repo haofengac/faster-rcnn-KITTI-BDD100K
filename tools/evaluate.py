@@ -135,28 +135,29 @@ def cat_pc(gt, predictions, thresholds):
     ap = np.zeros(len(thresholds))
     for t in range(len(thresholds)):
         ap[t] = get_ap(recalls[:, t], precisions[:, t])
-
+    
+    if (np.max(recalls) > 1 or np.max(precisions) > 1 or np.max(ap) > 1):
+        print(np.max(recalls), np.max(precisions), np.max(ap))
     return recalls, precisions, ap
 
 
 def evaluate_detection(gt, pred, class_id_dict):
 
-    thresholds = [0.75]
+    thresholds = [0.5]
     aps = np.zeros((len(thresholds), len(class_id_dict.keys())))
     cat_list = [class_id_dict[k] for k in class_id_dict]
     
     for idx in range(len(gt)):
         cat_gt = group_by_key(gt[idx]['labels'], 'category')
         cat_pred = group_by_key(pred[idx]['labels'], 'category')
-        
         for i, cat in enumerate(cat_list):
-            if cat in cat_pred:
+            if cat in cat_pred and cat in cat_gt:
                 r, p, ap = cat_pc(cat_gt[cat], cat_pred[cat], thresholds)
                 aps[:, i] += ap
                 
     aps /= len(gt)
-    aps *= 100
     mAP = np.mean(aps)
+    print(aps)
     return mAP, aps.flatten().tolist()
 
 
