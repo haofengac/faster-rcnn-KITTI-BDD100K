@@ -105,12 +105,14 @@ class TensorboardLogger(MetricLogger):
         
         if self.writer:
             for cat in cats.unique():
+                if cat == 0:
+                    continue
+                fig, ax = plt.figure(), plt.gca()
+                ax.imshow(image.transpose(1, 2, 0))
+                
                 for i in range(len(cats)):
                     if cats[i] == cat:
                         x1, y1, x2, y2 = boxes[i]
-                        fig, ax = plt.figure(), plt.gca()
-                        
-                        ax.imshow(image.transpose(1, 2, 0))
                         ax.add_patch(
                             patches.Rectangle(
                                 (x1, y1),
@@ -121,8 +123,9 @@ class TensorboardLogger(MetricLogger):
                                 fill=False
                             )
                         )
-                        plt.axis('scaled')
-                        plt.tight_layout()
+                        
+                plt.axis('scaled')
+                plt.tight_layout()
                         
                 self.writer.add_figure('train/image/{}'.format(cat), fig, self.iteration)
 
