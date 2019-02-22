@@ -8,7 +8,6 @@ from torch.distributed import deprecated as dist
 
 from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger, TensorboardLogger
-import numpy as np
 
 def reduce_loss_dict(loss_dict):
     """
