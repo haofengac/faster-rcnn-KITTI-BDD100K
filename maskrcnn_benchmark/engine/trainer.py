@@ -8,7 +8,7 @@ from torch.distributed import deprecated as dist
 
 from maskrcnn_benchmark.utils.comm import get_world_size
 from maskrcnn_benchmark.utils.metric_logger import MetricLogger, TensorboardLogger
-
+import numpy as np
 
 def reduce_loss_dict(loss_dict):
     """
@@ -66,9 +66,13 @@ def do_train(
         images = images.to(device)
         targets = [target.to(device) for target in targets]
         loss_dict, preds = model(images, targets)
-
         losses = sum(loss for loss in loss_dict.values())
 
+#         with open('log.txt', 'a') as f:
+#             f.write('\n\nloss: {}'.format(losses) + '\n')
+#             for target in targets:
+#                  f.write('\n'+str(target.get_field('fn')))
+            
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict)
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
@@ -104,10 +108,13 @@ def do_train(
                     memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0,
                 )
             )
-        if iteration % checkpoint_period == 0:
-            checkpointer.save("model_{:07d}".format(iteration), **arguments)
+        
+        if iteration % 1000 == 0:
             meters.update_image(iteration, images.tensors[0], preds[0], targets[0])
 
+        if iteration % checkpoint_period == 0:
+            checkpointer.save("model_{:07d}".format(iteration), **arguments)
+            
     checkpointer.save("model_{:07d}".format(iteration), **arguments)
     total_training_time = time.time() - start_training_time
     total_time_str = str(datetime.timedelta(seconds=total_training_time))
