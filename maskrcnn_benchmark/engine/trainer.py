@@ -68,11 +68,6 @@ def do_train(
         loss_dict, preds = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
 
-#         with open('log.txt', 'a') as f:
-#             f.write('\n\nloss: {}'.format(losses) + '\n')
-#             for target in targets:
-#                  f.write('\n'+str(target.get_field('fn')))
-            
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict)
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
@@ -109,10 +104,8 @@ def do_train(
                 )
             )
         
-        if iteration % 1000 == 0:
-            meters.update_image(iteration, images.tensors[0], preds[0], targets[0])
-
         if iteration % checkpoint_period == 0:
+            meters.update_image(iteration, images.tensors[0], preds[0], targets[0])
             checkpointer.save("model_{:07d}".format(iteration), **arguments)
             
     checkpointer.save("model_{:07d}".format(iteration), **arguments)

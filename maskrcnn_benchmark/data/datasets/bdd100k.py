@@ -21,10 +21,6 @@ CLASS_TYPE_CONVERSION = {
   'train':      'train'
 }
 
-# CLASS_TYPE_CONVERSION = {
-#   'person':     'person'
-# }
-
 TYPE_ID_CONVERSION = {
   'person':     1,
   'rider':      2,
@@ -38,9 +34,6 @@ TYPE_ID_CONVERSION = {
   'train':      10
 }
 
-# TYPE_ID_CONVERSION = {
-#   'person':     1
-# }
 
 class Bdd100kDataset(Dataset):
     """ BDD100k Dataset: https://bair.berkeley.edu/blog/2018/05/30/bdd/
@@ -85,7 +78,7 @@ class Bdd100kDataset(Dataset):
 
             label_type = CLASS_TYPE_CONVERSION[label['category']]
             classes += [TYPE_ID_CONVERSION[label_type]]
-#             classes += [1]
+            
             boxes += [
                 label['box2d']['x1'],
                 label['box2d']['y1'],
@@ -93,7 +86,7 @@ class Bdd100kDataset(Dataset):
                 label['box2d']['y2']
             ]
         fns = annotations['name']
-#             boxes += [150, 600, 500, 700]
+
         boxes = torch.as_tensor(boxes).reshape(-1, 4)
         target = BoxList(boxes, (W, H), mode="xyxy")
 
