@@ -1,4 +1,4 @@
-# Faster R-CNN with KITTI and BDD100k Support in PyTorch 1.0
+# Faster R-CNN for KITTI and BDD100k
 
 This project is based on facebookresearch's [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark).
 
