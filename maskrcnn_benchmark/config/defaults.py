@@ -126,7 +126,7 @@ _C.MODEL.RPN.PRE_NMS_TOP_N_TEST = 6000
 _C.MODEL.RPN.POST_NMS_TOP_N_TRAIN = 2000
 _C.MODEL.RPN.POST_NMS_TOP_N_TEST = 1000
 # NMS threshold used on RPN proposals
-_C.MODEL.RPN.NMS_THRESH = 0.7
+_C.MODEL.RPN.NMS_THRESH = 1.0
 # Proposal height and width both need to be greater than RPN_MIN_SIZE
 # (a the scale used during training or inference)
 _C.MODEL.RPN.MIN_SIZE = 0
@@ -165,7 +165,7 @@ _C.MODEL.ROI_HEADS.POSITIVE_FRACTION = 0.25
 _C.MODEL.ROI_HEADS.SCORE_THRESH = 0.05
 # Overlap threshold used for non-maximum suppression (suppress boxes with
 # IoU >= this threshold)
-_C.MODEL.ROI_HEADS.NMS = 0.5
+_C.MODEL.ROI_HEADS.NMS = 1.0
 # Maximum number of detections to return per image (100 is based on the limit
 # established for the COCO dataset)
 _C.MODEL.ROI_HEADS.DETECTIONS_PER_IMG = 100
