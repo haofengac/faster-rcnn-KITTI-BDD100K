@@ -166,7 +166,6 @@ def evaluate_detection(gt, pred, class_id_dict, fig_dir, model_name, image_dir):
                 counters[i] += 1
                 
                 if len(fig_dir) > 0 and idx % 1000 == 0 and False:
-                    print('saved')
                     fig, ax = plt.figure(), plt.gca()
                     image = Image.open(os.path.join(image_dir, gt[idx]['name']))
                     ax.imshow(image)
@@ -219,7 +218,6 @@ def main():
     data_loader = make_data_loader(cfg, is_train=False, is_distributed=False)[0]
     gt = data_loader.dataset.get_gt_labels()
     class_id_dict = data_loader.dataset.get_classes_ids()
-    print(class_id_dict)
         
     best = 0
     best_json = ''
