@@ -16,6 +16,9 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
         self.ids = sorted(self.ids)
 
         # filter images without detection annotations
+        anns = self.coco.dataset['annotations']
+        lists = self.coco.getAnnIds(imgIds=self.ids[0], iscrowd=None)
+        print(lists)
         if remove_images_without_annotations:
             self.ids = [
                 img_id
