@@ -51,7 +51,7 @@ class DatasetCatalog(object):
         "bdd100k_det_night_val": (
             "bdd100k/images/100k/val", "bdd100k/labels/bdd100k_det_night_val.json"
         ),
-        "bdd100k_det_city _train": (
+        "bdd100k_det_city_train": (
             "bdd100k/images/100k/train", "bdd100k/labels/bdd100k_det_city_train.json"
         ),
         "bdd100k_det_city_val": (
