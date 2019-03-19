@@ -39,6 +39,24 @@ class DatasetCatalog(object):
         "bdd100k_det_val": (
             "bdd100k/images/100k/val", "bdd100k/labels/bdd100k_labels_images_det_coco_val.json"
         ),
+        "bdd100k_det_daytime_train": (
+            "bdd100k/images/100k/train", "bdd100k/labels/bdd100k_det_daytime_train.json"
+        ),
+        "bdd100k_det_daytime_val": (
+            "bdd100k/images/100k/val", "bdd100k/labels/bdd100k_det_daytime_val.json"
+        ),
+        "bdd100k_det_night_train": (
+            "bdd100k/images/100k/train", "bdd100k/labels/bdd100k_det_night_train.json"
+        ),
+        "bdd100k_det_night_val": (
+            "bdd100k/images/100k/val", "bdd100k/labels/bdd100k_det_night_val.json"
+        ),
+        "bdd100k_det_city _train": (
+            "bdd100k/images/100k/train", "bdd100k/labels/bdd100k_det_city_train.json"
+        ),
+        "bdd100k_det_city_val": (
+            "bdd100k/images/100k/val", "bdd100k/labels/bdd100k_det_city_val.json"
+        ),
         "kitti_tracking_train": (
             "kitti_tracking/train", ""
         ),
